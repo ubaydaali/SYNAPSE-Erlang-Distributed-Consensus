@@ -29,7 +29,7 @@ start() ->
     end.
 
 validate_transaction(Line, CollectorPid) ->
-    case length(Line) >= 15 of
+    case length(Line) >= 10 of   %% التعديل هنا: جعلناها 10 بدلاً من 15
         true ->
             TxID = string:substr(Line, 1, 8),
             AmountStr = string:trim(string:substr(Line, 10)),
