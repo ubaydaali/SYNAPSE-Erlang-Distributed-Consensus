@@ -22,12 +22,20 @@ if st.button("🚀 Spawn 10,000 Concurrent Actors", type="primary"):
     
     os.makedirs('erlang_engine', exist_ok=True)
     os.makedirs('data/output', exist_ok=True)
+    os.makedirs('data/input', exist_ok=True)
+    
+    # [التحديث المعماري] توليد البيانات بأسطر حقيقية قبل تشغيل إرلانغ مباشرة
+    with st.spinner("Generating 10,000 live transactions with injected anomalies..."):
+        with open('data/input/transactions.dat', 'w', encoding='utf-8') as f:
+            for i in range(1, 10001):
+                amount = 100 if i % 1500 != 0 else 85000
+                f.write(f"TX{i:06d} {amount}\n") # السطر الجديد الحقيقي هنا
     
     with st.spinner("Compiling Erlang Actor Model..."):
         try:
             subprocess.run(["erlc", "-o", "erlang_engine", "src/synapse_core.erl"], check=True)
         except FileNotFoundError:
-            st.warning("⚠️ Local Erlang Compiler Missing. Deploy to Streamlit Cloud with `packages.txt` containing `erlang`.")
+            st.warning("⚠️ Local Erlang Compiler Missing. Deploy to Streamlit Cloud.")
             st.stop()
             
     start_time = time.time()
