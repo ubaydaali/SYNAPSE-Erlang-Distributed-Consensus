@@ -3,15 +3,14 @@
 
 start() ->
     {ok, RawData} = file:read_file("data/input/transactions.dat"),
-    %% تقسيم الأسطر بطريقة آمنة لجميع أنظمة التشغيل والسحابة
     Lines = string:tokens(erlang:binary_to_list(RawData), "\r\n"),
     
-    {ok, OutDevice} = file:open("data/output/consensus_report.txt", [write]),
+    %% [التعديل هنا] إجبار إرلانغ على استخدام UTF-8 لكي تقبل طباعة رمز البرق ⚡
+    {ok, OutDevice} = file:open("data/output/consensus_report.txt", [write, {encoding, utf8}]),
     io:format(OutDevice, "=======================================================~n", []),
     io:format(OutDevice, " ⚡ SYNAPSE DISTRIBUTED CONSENSUS ENGINE~n", []),
     io:format(OutDevice, "=======================================================~n~n", []),
     
-    %% تمرير معرف العملية الرئيسية (self) للمجمع لكي يخبرنا عند الانتهاء
     MainPid = self(),
     CollectorPid = spawn(?MODULE, collector, [length(Lines), OutDevice, MainPid]),
     
@@ -19,12 +18,11 @@ start() ->
         spawn(?MODULE, validate_transaction, [Line, CollectorPid]) 
     end, Lines),
     
-    %% بدلاً من التخمين بثانية واحدة، ننتظر رسالة التأكيد من المجمع (بدون وقت محدد)
     receive
         {consensus_reached} ->
             file:close(OutDevice),
             init:stop()
-    after 15000 -> %% كإجراء أمان، ننتظر 15 ثانية كحد أقصى على السحابة
+    after 15000 -> 
         io:format(OutDevice, "~n[TIMEOUT] CLOUD INSTANCE TOO SLOW. HALTING.~n", []),
         file:close(OutDevice),
         init:stop()
@@ -35,7 +33,6 @@ validate_transaction(Line, CollectorPid) ->
         true ->
             TxID = string:substr(Line, 1, 8),
             AmountStr = string:trim(string:substr(Line, 10)),
-            %% تحويل آمن للأرقام
             case catch list_to_integer(AmountStr) of
                 Amount when is_integer(Amount), Amount > 50000 ->
                     CollectorPid ! {flagged, TxID, Amount};
@@ -46,7 +43,6 @@ validate_transaction(Line, CollectorPid) ->
             CollectorPid ! {error}
     end.
 
-%% المجمع: عندما يصل العداد إلى الصفر، يطبع رسالة الختام ويرسل التأكيد للمحرك الرئيسي
 collector(0, OutDevice, MainPid) -> 
     io:format(OutDevice, "~n[SYSTEM] ALL 10,000 PROCESSES TERMINATED. CONSENSUS REACHED.~n", []),
     MainPid ! {consensus_reached};
